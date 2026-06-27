@@ -44,7 +44,9 @@ static int Create(string sourceFolder, string outputFile)
     foreach (var file in Directory.EnumerateFiles(sourceFolder, "*", SearchOption.AllDirectories))
     {
         var relativePath = Path.GetRelativePath(sourceFolder, file).Replace('\\', '/');
-        var bytes = File.ReadAllBytes(file);
+        var text = File.ReadAllText(file);
+        var normalized = text.ReplaceLineEndings("\n");
+        var bytes = Encoding.UTF8.GetBytes(normalized);
 
         WriteLine(stream, $"FILE {relativePath}");
         WriteLine(stream, $"LENGTH {bytes.Length}");
@@ -92,9 +94,10 @@ static int Extract(string archiveFile, string outputFolder)
         var bytes = new byte[byteCount];
         stream.ReadExactly(bytes);
 
+        var text = Encoding.UTF8.GetString(bytes).ReplaceLineEndings(Environment.NewLine);
         var destPath = Path.Combine(outputFolder, relativePath.Replace('/', Path.DirectorySeparatorChar));
         Directory.CreateDirectory(Path.GetDirectoryName(destPath)!);
-        File.WriteAllBytes(destPath, bytes);
+        File.WriteAllText(destPath, text, Encoding.UTF8);
         count++;
 
         Console.WriteLine($"  > {relativePath} ({byteCount} bytes)");
@@ -118,7 +121,7 @@ static string? ReadLine(Stream stream)
     int b;
     while ((b = stream.ReadByte()) != -1)
     {
-        if (b == '\n') return sb.ToString();
+        if (b == '\n') return sb.ToString().TrimEnd('\r');
         sb.Append((char)b);
     }
     return sb.Length > 0 ? sb.ToString() : null;

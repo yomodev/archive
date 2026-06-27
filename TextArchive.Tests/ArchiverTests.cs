@@ -92,6 +92,27 @@ public class ArchiverTests : IDisposable
     }
 
     [Fact]
+    public void Create_SkipsLockedFiles_AndContinues()
+    {
+        var src = TempPath("src");
+        Directory.CreateDirectory(src);
+        File.WriteAllText(Path.Combine(src, "a.txt"), "included");
+        var lockedPath = Path.Combine(src, "locked.txt");
+        File.WriteAllText(lockedPath, "locked content");
+
+        using var lockStream = new FileStream(lockedPath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+
+        var archive = TempPath("out.texttar");
+        var result = Archiver.Create(src, archive);
+
+        Assert.Equal(0, result);
+        var dst = TempPath("dst");
+        Archiver.Extract(archive, dst);
+        Assert.True(File.Exists(Path.Combine(dst, "a.txt")));
+        Assert.False(File.Exists(Path.Combine(dst, "locked.txt")));
+    }
+
+    [Fact]
     public void Create_ReturnError_WhenSourceFolderMissing()
     {
         var result = Archiver.Create(TempPath("nonexistent"), TempPath("out.texttar"));

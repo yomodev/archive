@@ -23,7 +23,16 @@ public static class Archiver
         foreach (var file in Directory.EnumerateFiles(sourceFolder, "*", SearchOption.AllDirectories))
         {
             var relativePath = Path.GetRelativePath(sourceFolder, file).Replace('\\', '/');
-            var text = File.ReadAllText(file);
+            string text;
+            try
+            {
+                text = File.ReadAllText(file);
+            }
+            catch (IOException)
+            {
+                Console.Error.WriteLine($"  ! {relativePath} (skipped — file in use)");
+                continue;
+            }
             var normalized = text.ReplaceLineEndings("\n");
             var bytes = Encoding.UTF8.GetBytes(normalized);
 

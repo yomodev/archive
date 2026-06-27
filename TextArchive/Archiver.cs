@@ -1,4 +1,5 @@
 using System.Text;
+using Microsoft.Extensions.FileSystemGlobbing;
 
 namespace TextArchive;
 
@@ -7,13 +8,17 @@ public static class Archiver
     public const string Magic = "TEXTTAR 1.0";
     public const string End = "END";
 
-    public static int Create(string sourceFolder, string outputFile)
+    public static int Create(string sourceFolder, string outputFile, IEnumerable<string>? excludePatterns = null)
     {
         if (!Directory.Exists(sourceFolder))
         {
             Console.Error.WriteLine($"Source folder not found: {sourceFolder}");
             return 1;
         }
+
+        var matcher = new Matcher();
+        foreach (var pattern in excludePatterns ?? [])
+            matcher.AddInclude(pattern);
 
         using var stream = new FileStream(outputFile, FileMode.Create, FileAccess.Write);
 
@@ -23,6 +28,13 @@ public static class Archiver
         foreach (var file in Directory.EnumerateFiles(sourceFolder, "*", SearchOption.AllDirectories))
         {
             var relativePath = Path.GetRelativePath(sourceFolder, file).Replace('\\', '/');
+
+            if (excludePatterns is not null && matcher.Match(relativePath).Files.Any())
+            {
+                Console.WriteLine($"  - {relativePath} (excluded)");
+                continue;
+            }
+
             string text;
             try
             {

@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "TextArchive": {
+      "commandName": "Project",
+      "commandLineArgs": "-x \"D:\\source\\repos\\share\\BatchMonitor_Step1\\example.txt\" example"
+    }
+  }
+}

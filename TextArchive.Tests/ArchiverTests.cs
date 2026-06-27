@@ -92,6 +92,46 @@ public class ArchiverTests : IDisposable
     }
 
     [Fact]
+    public void Create_ExcludesMatchingFiles()
+    {
+        var src = TempPath("src");
+        Directory.CreateDirectory(Path.Combine(src, "bin", "Debug"));
+        File.WriteAllText(Path.Combine(src, "main.cs"), "code");
+        File.WriteAllText(Path.Combine(src, "bin", "Debug", "app.dll"), "binary");
+
+        var archive = TempPath("out.texttar");
+        Assert.Equal(0, Archiver.Create(src, archive, ["**/bin/**"]));
+
+        var dst = TempPath("dst");
+        Archiver.Extract(archive, dst);
+        Assert.True(File.Exists(Path.Combine(dst, "main.cs")));
+        Assert.False(File.Exists(Path.Combine(dst, "bin", "Debug", "app.dll")));
+    }
+
+    [Fact]
+    public void Create_ExcludesMultiplePatternsViaSemicolon()
+    {
+        var src = TempPath("src");
+        Directory.CreateDirectory(Path.Combine(src, "bin"));
+        Directory.CreateDirectory(Path.Combine(src, "obj"));
+        File.WriteAllText(Path.Combine(src, "keep.txt"), "keep");
+        File.WriteAllText(Path.Combine(src, "bin", "a.dll"), "bin");
+        File.WriteAllText(Path.Combine(src, "obj", "b.obj"), "obj");
+
+        var patterns = "**/bin/**;**/obj/**"
+            .Split(';', StringSplitOptions.RemoveEmptyEntries);
+
+        var archive = TempPath("out.texttar");
+        Assert.Equal(0, Archiver.Create(src, archive, patterns));
+
+        var dst = TempPath("dst");
+        Archiver.Extract(archive, dst);
+        Assert.True(File.Exists(Path.Combine(dst, "keep.txt")));
+        Assert.False(File.Exists(Path.Combine(dst, "bin", "a.dll")));
+        Assert.False(File.Exists(Path.Combine(dst, "obj", "b.obj")));
+    }
+
+    [Fact]
     public void Create_SkipsLockedFiles_AndContinues()
     {
         var src = TempPath("src");

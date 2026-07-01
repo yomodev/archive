@@ -20,6 +20,7 @@ public static class Archiver
         foreach (var pattern in excludePatterns ?? [])
             matcher.AddInclude(pattern);
 
+        var absoluteOutput = Path.GetFullPath(outputFile);
         using var stream = new FileStream(outputFile, FileMode.Create, FileAccess.Write);
 
         WriteLine(stream, Magic);
@@ -27,6 +28,9 @@ public static class Archiver
         int count = 0;
         foreach (var file in Directory.EnumerateFiles(sourceFolder, "*", SearchOption.AllDirectories))
         {
+            if (Path.GetFullPath(file).Equals(absoluteOutput, StringComparison.OrdinalIgnoreCase))
+                continue;
+
             var relativePath = Path.GetRelativePath(sourceFolder, file).Replace('\\', '/');
 
             if (excludePatterns is not null && matcher.Match(relativePath).Files.Any())
